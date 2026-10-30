@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block title %}{{ c.chassis_no }} · SmartMES{% endblock %}
+{% block page_title %}Chassis Detail{% endblock %}
+
+{% block content %}
+
+<!-- HEADER CARD -->
+<div class="card p-6 mb-4 relative overflow-hidden
+  {% if c.status == 'QC_HOLD' or c.status == 'SCRAPPED' %}glow-danger glow-danger-pulse
+  {% elif c.status == 'COMPLETED' %}glow-success
+  {% else %}glow-brand{% endif %}">
+
+  <div class="absolute -right-24 -top-24 w-72 h-72 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+  <div class="flex items-start justify-between relative flex-wrap gap-4">
+    <div class="flex items-center gap-5">
+      {% if c.model.image_path %}
+      <div class="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center p-2">
+        <img src="{{ url_for('static', filename=c.model.image_path) }}"
+             onerror="this.style.display='none'"
+             class="max-w-full max-h-full object-contain">
+      </div>
+      {% endif %}
+      <div>
+        <div class="text-3xl font-extrabold text-white tracking-tight font-mono">{{ c.chassis_no }}</div>
+        <div class="text-sm text-white/50 mt-1">{{ c.model.model_name }} · {{ c.model.variant or 'Standard' }}</div>
+        <div class="text-xs text-white/40 mt-1.5 flex items-center gap-3 flex-wrap">
+          <span class="flex items-center gap-1.5">
+            <i data-lucide="clipboard-list" class="w-3 h-3"></i> {{ c.work_order.wo_number }}
+          </span>
+          <span class="flex items-center gap-1.5">
+            <i data-lucide="calendar" class="w-3 h-3"></i> {{ c.created_at.strftime('%d %b %Y') }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-right">
+      {% set color = {
+        'IN_PROGRESS':'bg-blue-500/15 text-blue-300 border border-blue-500/25',
+        'AWAITING_QC':'bg-amber-500/15 text-amber-300 border border-amber-500/25',
+        'QC_HOLD':'bg-red-500/15 text-red-300 border border-red-500/25',
+        'REWORK':'bg-orange-500/15 text-orange-300 border border-orange-500/25',
+        'RE_INSPECTION':'bg-amber-500/15 text-amber-300 border border-amber-500/25',
+        'COMPLETED':'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25',
+        'SCRAPPED':'bg-white/5 text-white/50 border border-white/10'
+      }.get(c.status, 'bg-white/5 text-white/50 border border-white/10') %}
+      <span class="badge {{ color }} text-sm px-3 py-1.5">{{ c.status }}</span>
+      <div class="mt-3">
+        <div class="text-2xl font-bold text-white tabular-nums">{{ c.progress }}%</div>
+        <div class="text-[10px] text-white/40 uppercase tracking-wider">Complete</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-6 relative">
+    <div class="progress-glass h-2">
+      <div class="fill" style="width: {{ c.progress }}%"></div>
+    </div>
+  </div>
+
+  <div class="mt-5 flex flex-wrap gap-2 relative">
+    {% if c.status == 'IN_PROGRESS' and has_permission('station.complete') %}
+    <a href="{{ url_for('station_entry', chassis_id=c.chassis_id) }}" class="btn-primary-glass">
+      <i data-lucide="check" class="w-4 h-4"></i> Mark Station Complete
+    </a>
+    {% endif %}
+
+    {% if c.status in ['AWAITING_QC','RE_INSPECTION'] and (has_permission('qc.pass') or has_permission('qc.fail')) %}
+    <a href="{{ url_for('qc_gate', chassis_id=c.chassis_id) }}"
+       class="btn-glass border-amber-500/40 text-amber-200 hover:bg-amber-500/10">
+      <i data-lucide="shield-check" class="w-4 h-4"></i> Go to QC Gate
+    </a>
+    {% endif %}
+
+    {% if c.status in ['QC_HOLD','REWORK'] and has_permission('rework.update') %}
+        {% if c.status == 'SCRAPPED' and has_permission('admin.all') %}
+    <form method="POST" action="{{ url_for('chassis_revive', chassis_id=c.chassis_id) }}"
+          onsubmit="return confirm('Revive this scrapped chassis?')" style="display:inline">
+      <button class="btn-glass border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/10">
+        <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Revive Chassis
+      </button>
+    </form>
+    {% endif %}
+    <a href="{{ url_for('rework_list') }}"
+       class="btn-glass border-red-500/40 text-red-200 hover:bg-red-500/10">
+      <i data-lucide="wrench" class="w-4 h-4"></i> Open Rework Queue
+    </a>
+    {% endif %}
+
+    <a href="{{ url_for('chassis_list') }}" class="btn-glass">
+      Back to list
+    </a>
+  </div>
+</div>
+
+<!-- TIMELINE + DEFECTS -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+  <!-- Timeline -->
+  <div class="card p-5">
+    <div class="flex items-center gap-2 mb-4">
+      <i data-lucide="git-commit-horizontal" class="w-4 h-4 text-brand-300"></i>
+      <h3 class="text-sm font-semibold text-white">Assembly Timeline</h3>
+    </div>
+
+    <div class="space-y-3">
+      {% for s in stations %}
+      {% set station_logs = logs|selectattr('station_id', 'equalto', s.station_id)|list %}
+      {% set qc_pass = station_logs|selectattr('status','equalto','QC_PASS')|list|length > 0 %}
+      {% set qc_fail = station_logs|selectattr('status','equalto','QC_FAIL')|list|length > 0 %}
+      {% set completed = station_logs|selectattr('status','equalto','COMPLETE')|list|length > 0 %}
+      {% set is_current = c.current_station_id == s.station_id %}
+
+      <div class="flex items-center gap-3 p-3 rounded-xl border
+        {% if qc_pass %}bg-emerald-500/[0.04] border-emerald-500/20
+        {% elif qc_fail %}bg-red-500/[0.04] border-red-500/20
+        {% elif is_current %}bg-brand-500/[0.04] border-brand-500/30
+        {% else %}bg-white/[0.02] border-white/6{% endif %}">
+
+        <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0
+          {% if qc_pass %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/40
+          {% elif qc_fail %}bg-red-500/20 text-red-300 border border-red-500/40
+          {% elif is_current %}bg-brand-500/20 text-brand-300 border border-brand-500/40 soft-pulse
+          {% else %}bg-white/5 text-white/40 border border-white/8{% endif %}">
+          {% if qc_pass %}<i data-lucide="check" class="w-4 h-4"></i>
+          {% elif qc_fail %}<i data-lucide="x" class="w-4 h-4"></i>
+          {% else %}<span class="text-xs font-bold">{{ s.sequence }}</span>{% endif %}
+        </div>
+
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-semibold text-white">{{ s.station_name }}</div>
+          <div class="text-[10px] text-white/45">
+            {% if qc_pass %}QC Passed
+            {% elif qc_fail %}QC Failed
+            {% elif completed %}Awaiting QC
+            {% elif is_current %}In progress
+            {% else %}Pending{% endif %}
+            · Std: {{ s.standard_time_min }} min
+          </div>
+        </div>
+
+        {% if s.is_final %}
+        <i data-lucide="flag" class="w-4 h-4 text-emerald-300"></i>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Defects -->
+  <div class="card p-5">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-2">
+        <i data-lucide="alert-triangle" class="w-4 h-4 text-red-300"></i>
+        <h3 class="text-sm font-semibold text-white">Defects ({{ defects|length }})</h3>
+      </div>
+    </div>
+
+    {% if defects %}
+    <div class="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+      {% for d in defects %}
+      <div class="p-3 rounded-xl border
+        {% if d.status == 'OPEN' %}bg-red-500/[0.04] border-red-500/20
+        {% elif d.status == 'IN_REWORK' %}bg-orange-500/[0.04] border-orange-500/20
+        {% elif d.status == 'FIXED' %}bg-emerald-500/[0.04] border-emerald-500/20
+        {% else %}bg-white/[0.02] border-white/8{% endif %}">
+
+        <div class="flex items-start gap-3">
+          {% if d.part_image_snapshot %}
+          <div class="w-14 h-14 rounded-xl bg-ink-900/60 border border-white/8 flex items-center justify-center p-1 flex-shrink-0">
+            <img src="{{ url_for('static', filename=d.part_image_snapshot) }}"
+                 onerror="this.style.display='none'"
+                 class="max-w-full max-h-full object-contain">
+          </div>
+          {% endif %}
+
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-mono text-brand-300">#{{ d.defect_id }}</span>
+              <span class="badge
+                {% if d.severity == 'CRITICAL' %}bg-red-500/15 text-red-300 border border-red-500/25
+                {% elif d.severity == 'MAJOR' %}bg-orange-500/15 text-orange-300 border border-orange-500/25
+                {% else %}bg-amber-500/15 text-amber-300 border border-amber-500/25{% endif %}">
+                {{ d.severity }}
+              </span>
+            </div>
+            <div class="text-sm font-semibold text-white">{{ d.part_name_snapshot or 'Unspecified' }}</div>
+            <div class="text-xs text-white/55 mt-0.5">{{ d.defect_type }}</div>
+            {% if d.description %}
+            <div class="text-[11px] text-white/40 mt-1.5 italic">"{{ d.description }}"</div>
+            {% endif %}
+            <div class="flex items-center gap-3 mt-2 text-[10px] text-white/40 flex-wrap">
+              <span class="flex items-center gap-1"><i data-lucide="map-pin" class="w-2.5 h-2.5"></i> {{ d.station.station_name }}</span>
+              <span class="flex items-center gap-1"><i data-lucide="user" class="w-2.5 h-2.5"></i> {{ d.reporter.username }}</span>
+              <span class="flex items-center gap-1"><i data-lucide="clock" class="w-2.5 h-2.5"></i> {{ d.created_at.strftime('%H:%M') }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-10">
+      <div class="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-3">
+        <i data-lucide="check-circle-2" class="w-6 h-6 text-emerald-300"></i>
+      </div>
+      <div class="text-sm text-white/60">No defects on this chassis</div>
+      <div class="text-xs text-white/40 mt-1">Quality is on track</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ACTIVITY LOG -->
+<div class="card p-5 mt-4">
+  <div class="flex items-center gap-2 mb-4">
+    <i data-lucide="history" class="w-4 h-4 text-white/50"></i>
+    <h3 class="text-sm font-semibold text-white">Activity Log</h3>
+  </div>
+
+  {% if logs %}
+  <div class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+    {% for l in logs|reverse %}
+    <div class="flex items-center gap-3 text-xs py-2 border-b border-white/5 last:border-0 flex-wrap">
+      <div class="w-2 h-2 rounded-full flex-shrink-0
+        {% if l.status == 'QC_PASS' %}bg-emerald-400
+        {% elif l.status == 'QC_FAIL' %}bg-red-400
+        {% else %}bg-brand-400{% endif %}"></div>
+      <span class="text-white/40 tabular-nums w-20">{{ l.in_time.strftime('%H:%M:%S') if l.in_time else '—' }}</span>
+      <span class="font-semibold text-white w-44">{{ l.station.station_name }}</span>
+      <span class="badge
+        {% if l.status == 'QC_PASS' %}bg-emerald-500/15 text-emerald-300 border border-emerald-500/25
+        {% elif l.status == 'QC_FAIL' %}bg-red-500/15 text-red-300 border border-red-500/25
+        {% else %}bg-blue-500/15 text-blue-300 border border-blue-500/25{% endif %}">
+        {{ l.status }}
+      </span>
+      <span class="text-white/50">by {{ l.operator.username }}</span>
+      {% if l.remarks %}
+      <span class="text-white/40 italic truncate">— {{ l.remarks }}</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center py-6 text-xs text-white/40">No activity yet</div>
+  {% endif %}
+</div>
+
+{% endblock %}

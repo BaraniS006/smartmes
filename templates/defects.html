@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Defects · SmartMES{% endblock %}
+{% block page_title %}Defect Log{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center justify-between mb-5">
+  <div>
+    <h2 class="text-xl font-bold text-white">Defect Log</h2>
+    <p class="text-xs text-white/45 mt-0.5">{{ defects|length }} records</p>
+  </div>
+</div>
+
+<div class="card overflow-hidden">
+  {% if defects %}
+  <div class="overflow-x-auto">
+    <table class="table-dark-custom">
+      <thead>
+        <tr>
+          <th>ID</th><th>Chassis</th><th>Model</th><th>Station</th>
+          <th>Part</th><th>Type</th><th>Severity</th><th>Status</th><th>Reported By</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in defects %}
+        <tr>
+          <td class="font-mono text-brand-300">#{{ d.defect_id }}</td>
+          <td>
+            <a href="{{ url_for('chassis_detail', chassis_id=d.chassis_id) }}"
+               class="font-mono text-white hover:text-brand-300 font-semibold transition">
+              {{ d.chassis.chassis_no }}
+            </a>
+          </td>
+          <td class="text-white/50 text-xs">{{ d.chassis.model.model_name }}</td>
+          <td>{{ d.station.station_name }}</td>
+          <td>
+            <div class="flex items-center gap-2">
+              {% if d.part_image_snapshot %}
+              <div class="w-7 h-7 rounded-lg bg-white/5 border border-white/8 flex items-center justify-center p-0.5">
+                <img src="{{ url_for('static', filename=d.part_image_snapshot) }}"
+                     onerror="this.style.display='none'"
+                     class="max-w-full max-h-full object-contain">
+              </div>
+              {% endif %}
+              <span>{{ d.part_name_snapshot or '—' }}</span>
+            </div>
+          </td>
+          <td class="text-white/60 text-xs">{{ d.defect_type }}</td>
+          <td>
+            <span class="badge
+              {% if d.severity=='CRITICAL' %}bg-red-500/15 text-red-300 border border-red-500/25
+              {% elif d.severity=='MAJOR' %}bg-orange-500/15 text-orange-300 border border-orange-500/25
+              {% else %}bg-amber-500/15 text-amber-300 border border-amber-500/25{% endif %}">
+              {{ d.severity }}
+            </span>
+          </td>
+          <td>
+            <span class="badge
+              {% if d.status=='OPEN' %}bg-red-500/15 text-red-300 border border-red-500/25
+              {% elif d.status=='IN_REWORK' %}bg-orange-500/15 text-orange-300 border border-orange-500/25
+              {% elif d.status=='FIXED' %}bg-emerald-500/15 text-emerald-300 border border-emerald-500/25
+              {% else %}bg-white/5 text-white/50 border border-white/10{% endif %}">
+              {{ d.status }}
+            </span>
+          </td>
+          <td class="text-white/50 text-xs">{{ d.reporter.username }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-16">
+    <div class="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-3">
+      <i data-lucide="check-circle-2" class="w-7 h-7 text-emerald-300"></i>
+    </div>
+    <div class="text-sm text-white/60">No defects recorded</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

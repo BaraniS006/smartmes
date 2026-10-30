@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}New Model · SmartMES{% endblock %}
+{% block page_title %}Add Bike Model{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <div class="card p-6 fade-up">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-11 h-11 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
+        <i data-lucide="bike" class="w-5 h-5 text-brand-300"></i>
+      </div>
+      <div>
+        <h2 class="text-lg font-bold text-white">New Bike Model</h2>
+        <p class="text-xs text-white/45">Add a new model to the assembly catalog</p>
+      </div>
+    </div>
+
+    <form method="POST" class="space-y-5">
+      <div>
+        <label class="block text-[11px] font-semibold text-white/50 uppercase tracking-wider mb-2">Model Name</label>
+        <input name="model_name" required placeholder="e.g. Classic 350" class="input-glass">
+      </div>
+
+      <div>
+        <label class="block text-[11px] font-semibold text-white/50 uppercase tracking-wider mb-2">Variant</label>
+        <input name="variant" placeholder="e.g. Standard / Adventure / Retro" class="input-glass">
+      </div>
+
+      <div>
+        <label class="block text-[11px] font-semibold text-white/50 uppercase tracking-wider mb-2">Image Path (optional)</label>
+        <input name="image_path" placeholder="images/models/classic_350.png" class="input-glass font-mono text-xs">
+        <p class="text-[10px] text-white/40 mt-1.5">
+          Relative to <code class="text-brand-300">static/</code> folder.
+        </p>
+      </div>
+
+      <div class="flex gap-3 pt-2">
+        <button type="submit" class="btn-primary-glass flex-1 justify-center">
+          <i data-lucide="check" class="w-4 h-4"></i> Create Model
+        </button>
+        <a href="{{ url_for('models_admin') }}" class="btn-glass">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}New Work Order · SmartMES{% endblock %}
+{% block page_title %}Create Work Order{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <div class="card p-6 fade-up">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-11 h-11 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
+        <i data-lucide="clipboard-plus" class="w-5 h-5 text-brand-300"></i>
+      </div>
+      <div>
+        <h2 class="text-lg font-bold text-white">New Work Order</h2>
+        <p class="text-xs text-white/45">A batch of bikes to be produced</p>
+      </div>
+    </div>
+
+    <form method="POST" class="space-y-5">
+      <div>
+        <label class="block text-[11px] font-semibold text-white/50 uppercase tracking-wider mb-2">WO Number</label>
+        <input name="wo_number" required placeholder="WO-2026-003"
+               class="input-glass font-mono">
+      </div>
+
+      <div>
+        <label class="block text-[11px] font-semibold text-white/50 uppercase tracking-wider mb-2">Bike Model</label>
+        <select name="model_id" required class="input-glass">
+          {% for m in models %}
+          <option value="{{ m.model_id }}" class="bg-ink-800">{{ m.model_name }} {{ m.variant or '' }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3">
+        <div>
+          <label class="block text-[11px] font-semibold text-white/50 uppercase tracking-wider mb-2">Target Qty</label>
+          <input name="target_qty" type="number" value="20" required class="input-glass">
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-white/50 uppercase tracking-wider mb-2">Shift</label>
+          <select name="shift" class="input-glass">
+            <option class="bg-ink-800">A</option>
+            <option class="bg-ink-800">B</option>
+            <option class="bg-ink-800">C</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-white/50 uppercase tracking-wider mb-2">Date</label>
+          <input name="wo_date" type="date" required class="input-glass">
+        </div>
+      </div>
+
+      <div class="flex gap-3 pt-2">
+        <button type="submit" class="btn-primary-glass flex-1 justify-center">
+          <i data-lucide="check" class="w-4 h-4"></i> Create Work Order
+        </button>
+        <a href="{{ url_for('workorders') }}" class="btn-glass">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.querySelector('input[name=wo_date]').valueAsDate = new Date();
+</script>
+{% endblock %}

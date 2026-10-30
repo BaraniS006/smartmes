@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Stations · SmartMES{% endblock %}
+{% block page_title %}Assembly Stations{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-5">
+  <div>
+    <h2 class="text-xl font-bold text-white">Assembly Stations</h2>
+    <p class="text-xs text-white/45 mt-0.5">{{ stations|length }} stations in sequence</p>
+  </div>
+  <a href="{{ url_for('station_new') }}" class="btn-primary-glass">
+    <i data-lucide="plus" class="w-4 h-4"></i> New Station
+  </a>
+</div>
+
+<div class="card overflow-hidden">
+  {% if stations %}
+  <div class="overflow-x-auto">
+    <table class="table-dark-custom">
+      <thead>
+        <tr><th>Seq</th><th>Station Name</th><th>Std Time</th><th>Type</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for s in stations %}
+        <tr>
+          <td>
+            <div class="w-8 h-8 rounded-lg bg-brand-500/15 border border-brand-500/25 text-brand-300 flex items-center justify-center font-bold text-sm">
+              {{ s.sequence }}
+            </div>
+          </td>
+          <td class="font-semibold text-white">{{ s.station_name }}</td>
+          <td class="text-white/50">{{ s.standard_time_min }} min</td>
+          <td>
+            {% if s.is_final %}
+            <span class="badge bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+              <i data-lucide="flag" class="w-3 h-3"></i> FINAL
+            </span>
+            {% elif s.is_qc_gate %}
+            <span class="badge bg-amber-500/15 text-amber-300 border border-amber-500/25">
+              <i data-lucide="shield-check" class="w-3 h-3"></i> QC GATE
+            </span>
+            {% else %}
+            <span class="badge bg-white/5 text-white/60 border border-white/10">Assembly</span>
+            {% endif %}
+          </td>
+          <td>
+            <form method="POST" action="{{ url_for('station_delete', station_id=s.station_id) }}"
+                  onsubmit="return confirm('Delete this station?')">
+              <button class="text-white/30 hover:text-red-400 transition p-1">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-16">
+    <i data-lucide="settings-2" class="w-10 h-10 text-white/40 mx-auto mb-3"></i>
+    <div class="text-sm text-white/60">No stations configured</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

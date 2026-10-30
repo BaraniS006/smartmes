@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Rework · SmartMES{% endblock %}
+{% block page_title %}Rework Action{% endblock %}
+
+{% block content %}
+
+<div class="max-w-3xl mx-auto">
+
+  <div class="card p-6 mb-4 glow-danger relative overflow-hidden">
+    <div class="absolute -right-24 -top-24 w-72 h-72 bg-red-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="flex items-center justify-between relative flex-wrap gap-4">
+      <div>
+        <div class="text-[10px] text-white/40 uppercase tracking-[0.15em] font-semibold mb-1">
+          Defect #{{ d.defect_id }}
+        </div>
+        <div class="text-2xl font-extrabold text-white font-mono">{{ c.chassis_no }}</div>
+        <div class="text-sm text-white/55 mt-1">{{ c.model.model_name }}</div>
+      </div>
+      <span class="badge
+        {% if d.status == 'OPEN' %}bg-red-500/15 text-red-300 border border-red-500/25
+        {% elif d.status == 'IN_REWORK' %}bg-orange-500/15 text-orange-300 border border-orange-500/25
+        {% else %}bg-emerald-500/15 text-emerald-300 border border-emerald-500/25{% endif %} px-3 py-1.5">
+        {{ d.status }}
+      </span>
+    </div>
+  </div>
+
+  <div class="card p-5 mb-4">
+    <div class="flex items-start gap-4">
+      {% if d.part_image_snapshot %}
+      <div class="w-24 h-24 rounded-xl bg-ink-900/60 border border-white/8 flex items-center justify-center p-2 flex-shrink-0">
+        <img src="{{ url_for('static', filename=d.part_image_snapshot) }}"
+             onerror="this.style.display='none'"
+             class="max-w-full max-h-full object-contain">
+      </div>
+      {% endif %}
+      <div class="flex-1">
+        <div class="text-lg font-bold text-white">{{ d.part_name_snapshot or 'Unspecified Part' }}</div>
+        <div class="text-sm text-white/55 mt-1">{{ d.defect_type }}</div>
+        <div class="flex items-center gap-4 mt-3 flex-wrap text-xs text-white/45">
+          <span class="flex items-center gap-1.5">
+            <i data-lucide="map-pin" class="w-3 h-3"></i> {{ d.station.station_name }}
+          </span>
+          <span class="flex items-center gap-1.5">
+            <i data-lucide="alert-triangle" class="w-3 h-3"></i>
+            <span class="badge
+              {% if d.severity=='CRITICAL' %}bg-red-500/15 text-red-300 border border-red-500/25
+              {% elif d.severity=='MAJOR' %}bg-orange-500/15 text-orange-300 border border-orange-500/25
+              {% else %}bg-amber-500/15 text-amber-300 border border-amber-500/25{% endif %}">
+              {{ d.severity }}
+            </span>
+          </span>
+          <span class="flex items-center gap-1.5">
+            <i data-lucide="user" class="w-3 h-3"></i> {{ d.reporter.full_name }}
+          </span>
+        </div>
+        {% if d.description %}
+        <div class="mt-3 p-3 rounded-xl bg-white/[0.02] border border-white/6 text-xs text-white/60 italic">
+          "{{ d.description }}"
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <form method="POST" class="card p-5">
+    {% if d.status == 'OPEN' %}
+      <div class="mb-5">
+        <div class="flex items-center gap-3 p-4 rounded-xl bg-amber-500/[0.06] border border-amber-500/20">
+          <i data-lucide="info" class="w-5 h-5 text-amber-300 flex-shrink-0"></i>
+          <div class="text-xs text-amber-100">
+            This defect is not yet in rework. Click "Start Rework" to assign it to yourself.
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-3">
+        <button name="action" value="START" class="btn-primary-glass flex-1 justify-center">
+          <i data-lucide="play" class="w-4 h-4"></i> Start Rework
+        </button>
+        <a href="{{ url_for('rework_list') }}" class="btn-glass">Back</a>
+      </div>
+
+    {% elif d.status == 'IN_REWORK' %}
+      <div class="mb-5">
+        <label class="block text-[11px] font-semibold text-white/50 uppercase tracking-wider mb-2">
+          Action Taken
+        </label>
+        <textarea name="action_taken" rows="3" required
+                  placeholder="Describe what you did to fix this defect..."
+                  class="input-glass resize-none"></textarea>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button name="action" value="COMPLETE" class="btn-primary-glass flex-1 justify-center">
+          <i data-lucide="check-circle-2" class="w-4 h-4"></i> Mark Complete → Send to Re-Inspection
+        </button>
+        <button name="action" value="SCRAP"
+                class="btn-glass border-red-500/40 text-red-200 hover:bg-red-500/10">
+          <i data-lucide="x-circle" class="w-4 h-4"></i> Scrap Chassis
+        </button>
+      </div>
+
+    {% else %}
+      <div class="text-center py-6">
+        <div class="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-3">
+          <i data-lucide="check" class="w-6 h-6 text-emerald-300"></i>
+        </div>
+        <div class="text-sm text-white/60">This defect is already resolved</div>
+      </div>
+      <a href="{{ url_for('rework_list') }}"
+         class="block text-center text-sm text-brand-300 hover:text-brand-400 mt-3 transition">
+        Back to queue
+      </a>
+    {% endif %}
+  </form>
+</div>
+
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Assembly Line · SmartMES{% endblock %}
+{% block page_title %}Live Assembly Line{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center justify-between mb-5">
+  <div>
+    <h2 class="text-xl font-bold text-white">Main Assembly Line</h2>
+    <p class="text-xs text-white/45 mt-0.5">Real-time chassis flow across stations</p>
+  </div>
+  <div class="flex items-center gap-4 text-xs text-white/55">
+    <span class="flex items-center gap-1.5">
+      <span class="w-2 h-2 rounded-full bg-brand-500"></span> In Progress
+    </span>
+    <span class="flex items-center gap-1.5">
+      <span class="w-2 h-2 rounded-full bg-amber-400"></span> Awaiting QC
+    </span>
+  </div>
+</div>
+
+<!-- BIG ANIMATED LINE -->
+<div class="card p-8 mb-5 relative overflow-hidden">
+
+  <div class="absolute inset-0 pointer-events-none">
+    <div class="absolute top-1/2 left-1/4 w-72 h-72 bg-brand-500/[0.06] rounded-full blur-3xl"></div>
+    <div class="absolute top-1/2 right-1/4 w-72 h-72 bg-blue-500/[0.06] rounded-full blur-3xl"></div>
+  </div>
+
+  <div class="relative">
+    <div class="absolute left-0 right-0 top-[58px] h-2 conveyor-belt rounded-full opacity-90"></div>
+
+    <div class="relative grid grid-cols-5 gap-4">
+      {% for station in stations %}
+      <div class="relative z-10 flex flex-col items-center">
+
+        <div class="w-20 h-20 rounded-2xl station-node {% if station.is_final %}station-active{% endif %} flex flex-col items-center justify-center">
+          <i data-lucide="{% if station.is_final %}flag{% elif station.is_qc_gate %}shield-check{% else %}settings{% endif %}"
+             class="w-6 h-6 {% if station.is_final %}text-emerald-300{% elif station.is_qc_gate %}text-amber-300{% else %}text-white/40{% endif %}"></i>
+          <div class="text-[10px] text-white/35 font-bold mt-0.5 uppercase tracking-wider">#{{ station.sequence }}</div>
+        </div>
+
+        <div class="text-xs text-white/70 text-center mt-3 leading-tight font-semibold px-1">
+          {{ station.station_name }}
+        </div>
+
+        <div class="text-[10px] text-white/40 text-center mt-0.5">
+          Std: {{ station.station_time if station.station_time else station.standard_time_min }} min
+        </div>
+
+        <div class="mt-3 flex flex-wrap gap-1.5 justify-center min-h-[36px] max-w-[160px]">
+          {% for c in by_station[station.station_id] %}
+          <div class="group/marker relative">
+            <div class="chassis-marker {% if c.status=='AWAITING_QC' %}qc-pending{% endif %} ring-pulse w-9 h-9 flex items-center justify-center text-[9px] font-bold text-white cursor-pointer">
+              {{ c.chassis_no[-3:] }}
+            </div>
+            <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-ink-900/95 backdrop-blur-xl border border-white/10 rounded-xl px-3 py-2 text-[10px] text-white whitespace-nowrap opacity-0 group-hover/marker:opacity-100 pointer-events-none transition z-30 shadow-2xl">
+              <div class="font-bold text-xs">{{ c.chassis_no }}</div>
+              <div class="text-white/50 mt-0.5">{{ c.model.model_name }}</div>
+              <div class="text-white/40 mt-0.5">{{ c.status }}</div>
+              <div class="mt-1.5 h-1 bg-white/10 rounded-full overflow-hidden">
+                <div class="h-full bg-brand-500" style="width: {{ c.progress }}%"></div>
+              </div>
+              <div class="text-brand-300 font-semibold mt-0.5 text-right">{{ c.progress }}%</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        {% if by_station[station.station_id] %}
+        <div class="text-[10px] text-white/40 mt-1">
+          {{ by_station[station.station_id]|length }} chassis
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- LEGEND + INFO -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+  <div class="card p-5">
+    <div class="flex items-center gap-2 mb-3">
+      <i data-lucide="info" class="w-4 h-4 text-brand-300"></i>
+      <h3 class="text-sm font-semibold text-white">Line Legend</h3>
+    </div>
+    <div class="space-y-2.5 text-xs text-white/60">
+      <div class="flex items-center gap-3">
+        <div class="chassis-marker w-6 h-6"></div>
+        <span>Chassis in progress</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="chassis-marker qc-pending w-6 h-6"></div>
+        <span>Awaiting QC inspection</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="w-6 h-6 rounded-lg station-node"></div>
+        <span>Assembly station</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="w-6 h-6 rounded-lg station-node station-active"></div>
+        <span>Final QC station</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card p-5">
+    <div class="flex items-center gap-2 mb-3">
+      <i data-lucide="gauge" class="w-4 h-4 text-blue-300"></i>
+      <h3 class="text-sm font-semibold text-white">Throughput</h3>
+    </div>
+    {% set total_active = namespace(n=0) %}
+    {% for sid, lst in by_station.items() %}{% set total_active.n = total_active.n + lst|length %}{% endfor %}
+    <div class="text-4xl font-extrabold text-white tabular-nums">{{ total_active.n }}</div>
+    <div class="text-xs text-white/40 mt-1">chassis currently on line</div>
+    <div class="mt-4 pt-3 border-t border-white/8 text-xs">
+      <div class="flex justify-between py-1.5">
+        <span class="text-white/50">Stations</span>
+        <span class="text-white font-semibold">{{ stations|length }}</span>
+      </div>
+      <div class="flex justify-between py-1.5">
+        <span class="text-white/50">Total cycle time</span>
+        <span class="text-white font-semibold">{{ stations|sum(attribute='standard_time_min') }} min</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card p-5">
+    <div class="flex items-center gap-2 mb-3">
+      <i data-lucide="wrench" class="w-4 h-4 text-red-300"></i>
+      <h3 class="text-sm font-semibold text-white">Rework Isolation</h3>
+    </div>
+    <p class="text-xs text-white/55 leading-relaxed">
+      Any chassis that fails QC is immediately removed from the main line and routed to the rework bay.
+      It must pass re-inspection before re-entering the line.
+    </p>
+    <a href="{{ url_for('rework_line') }}"
+       class="mt-4 inline-flex items-center gap-2 text-sm font-medium text-red-300 hover:text-red-200 transition">
+      View Rework Line <i data-lucide="arrow-right" class="w-4 h-4"></i>
+    </a>
+  </div>
+</div>
+
+{% endblock %}

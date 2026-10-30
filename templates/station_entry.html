@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Station Entry · SmartMES{% endblock %}
+{% block page_title %}Station Completion{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+
+  <div class="card p-6 mb-4 glow-brand relative overflow-hidden">
+    <div class="absolute -right-24 -top-24 w-72 h-72 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="flex items-center justify-between relative flex-wrap gap-4">
+      <div>
+        <div class="text-[10px] text-white/40 uppercase tracking-[0.15em] font-semibold mb-1">Station Entry</div>
+        <div class="text-3xl font-extrabold text-white">{{ station.station_name }}</div>
+        <div class="text-sm text-white/55 mt-1">
+          Chassis <span class="font-mono text-white">{{ c.chassis_no }}</span> · {{ c.model.model_name }}
+        </div>
+      </div>
+      <div class="w-16 h-16 rounded-2xl station-node station-active flex flex-col items-center justify-center">
+        <span class="text-2xl font-bold text-brand-300">#{{ station.sequence }}</span>
+        <div class="text-[9px] text-white/40 uppercase tracking-wider">Station</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Parts checklist -->
+  <div class="card p-5 mb-4">
+    <div class="flex items-center gap-2 mb-4">
+      <i data-lucide="list-checks" class="w-4 h-4 text-brand-300"></i>
+      <h3 class="text-sm font-semibold text-white">Parts to Fit at This Station</h3>
+    </div>
+
+    {% if parts %}
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      {% for p in parts %}
+      <div class="p-3 rounded-xl bg-white/[0.02] border border-white/8 flex flex-col items-center text-center">
+        <div class="w-20 h-20 rounded-xl bg-ink-900/60 border border-white/6 flex items-center justify-center p-2 mb-2">
+          {% if p.image_path %}
+          <img src="{{ url_for('static', filename=p.image_path) }}"
+               onerror="this.style.display='none'"
+               class="max-w-full max-h-full object-contain">
+          {% else %}
+          <i data-lucide="package" class="w-6 h-6 text-white/30"></i>
+          {% endif %}
+        </div>
+        <div class="text-xs font-semibold text-white leading-tight">{{ p.part_name }}</div>
+        <div class="text-[10px] text-white/40 font-mono mt-0.5">{{ p.part_no }}</div>
+        <div class="text-[10px] text-brand-300 mt-1">Qty: {{ p.qty }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-xs text-white/40 italic py-4 text-center">
+      No parts mapped to this station yet
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Submit -->
+  <form method="POST" class="card p-5">
+    <div class="mb-4">
+      <label class="block text-[11px] font-semibold text-white/50 uppercase tracking-wider mb-2">
+        Remarks (optional)
+      </label>
+      <textarea name="remarks" rows="2" placeholder="Any notes about this station..."
+                class="input-glass resize-none"></textarea>
+    </div>
+
+    <div class="flex gap-3">
+      <button type="submit" class="btn-primary-glass flex-1 justify-center">
+        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+        Mark Station Complete
+      </button>
+      <a href="{{ url_for('chassis_detail', chassis_id=c.chassis_id) }}" class="btn-glass">
+        Cancel
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

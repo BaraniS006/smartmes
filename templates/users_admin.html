@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Users · SmartMES{% endblock %}
+{% block page_title %}Users & Roles{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-5">
+  <div>
+    <h2 class="text-xl font-bold text-white">Users</h2>
+    <p class="text-xs text-white/45 mt-0.5">{{ users|length }} users</p>
+  </div>
+  <a href="{{ url_for('user_new') }}" class="btn-primary-glass">
+    <i data-lucide="user-plus" class="w-4 h-4"></i> New User
+  </a>
+</div>
+
+<div class="card overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="table-dark-custom">
+      <thead>
+        <tr><th>ID</th><th>User</th><th>Username</th><th>Role</th><th>Created</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td class="text-white/40 font-mono text-xs">{{ u.user_id }}</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center font-bold text-white text-xs">
+                {{ u.full_name[0]|upper if u.full_name else 'U' }}
+              </div>
+              <span class="font-medium text-white">{{ u.full_name }}</span>
+            </div>
+          </td>
+          <td class="font-mono text-white/50 text-xs">{{ u.username }}</td>
+          <td>
+            {% set rc = {
+              'Admin':'bg-red-500/15 text-red-300 border border-red-500/25',
+              'Line Supervisor':'bg-amber-500/15 text-amber-300 border border-amber-500/25',
+              'Operator':'bg-blue-500/15 text-blue-300 border border-blue-500/25',
+              'QC Inspector':'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25',
+              'Rework Technician':'bg-orange-500/15 text-orange-300 border border-orange-500/25',
+              'Auditor':'bg-white/5 text-white/60 border border-white/10'
+            }.get(u.role.role_name, 'bg-white/5 text-white/60 border border-white/10') %}
+            <span class="badge {{ rc }}">{{ u.role.role_name }}</span>
+          </td>
+          <td class="text-white/40 text-xs">{{ u.created_at.strftime('%d %b %Y') }}</td>
+          <td>
+            {% if u.is_active_flag %}
+              <span class="badge bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Active
+              </span>
+            {% else %}
+              <span class="badge bg-red-500/15 text-red-300 border border-red-500/25">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-400"></span> Disabled
+              </span>
+            {% endif %}
+          </td>
+          <td>
+            {% if u.user_id != current_user.user_id %}
+              <form method="POST" action="{{ url_for('user_delete', user_id=u.user_id) }}"
+                    onsubmit="return confirm('Delete user {{ u.username }}?\n\nNote: if this user has activity records, they will be deactivated instead of deleted.');">
+                <button class="text-white/30 hover:text-red-400 transition p-1" title="Delete / Deactivate">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </form>
+            {% else %}
+              <span class="text-white/25 text-xs italic">You</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

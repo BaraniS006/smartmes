@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Work Orders · SmartMES{% endblock %}
+{% block page_title %}Work Orders{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center justify-between mb-5">
+  <div>
+    <h2 class="text-xl font-bold text-white">Work Orders</h2>
+    <p class="text-xs text-white/45 mt-0.5">{{ wos|length }} total</p>
+  </div>
+  <a href="{{ url_for('workorder_new') }}" class="btn-primary-glass">
+    <i data-lucide="plus" class="w-4 h-4"></i> New Work Order
+  </a>
+</div>
+
+<div class="card overflow-hidden">
+  {% if wos %}
+  <div class="overflow-x-auto">
+    <table class="table-dark-custom">
+      <thead>
+        <tr><th>WO #</th><th>Model</th><th>Shift</th><th>Date</th><th>Progress</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for w in wos %}
+        <tr>
+          <td class="font-mono text-brand-300 font-semibold">{{ w.wo_number }}</td>
+          <td>
+            <div class="flex items-center gap-2">
+              {% if w.model.image_path %}
+              <div class="w-8 h-8 rounded-lg bg-white/5 border border-white/8 flex items-center justify-center p-0.5">
+                <img src="{{ url_for('static', filename=w.model.image_path) }}"
+                     onerror="this.style.display='none'"
+                     class="max-w-full max-h-full object-contain">
+              </div>
+              {% endif %}
+              <span>{{ w.model.model_name }}</span>
+            </div>
+          </td>
+          <td>Shift {{ w.shift }}</td>
+          <td>{{ w.wo_date }}</td>
+          <td>
+            <div class="flex items-center gap-2 min-w-[140px]">
+              <div class="progress-glass flex-1 h-1.5">
+                <div class="fill" style="width: {{ w.fill_percent }}%"></div>
+              </div>
+              <span class="text-xs text-white/50 tabular-nums">
+                {{ w.completed_qty }}/{{ w.target_qty }}
+              </span>
+            </div>
+          </td>
+          <td>
+            <span class="badge
+              {% if w.status == 'CLOSED' %}bg-emerald-500/15 text-emerald-300 border border-emerald-500/25
+              {% else %}bg-blue-500/15 text-blue-300 border border-blue-500/25{% endif %}">
+              {{ w.status }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-16">
+    <i data-lucide="clipboard-list" class="w-10 h-10 text-white/40 mx-auto mb-3"></i>
+    <div class="text-sm text-white/60">No work orders yet</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

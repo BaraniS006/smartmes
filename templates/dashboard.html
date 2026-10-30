@@ -1,0 +1,436 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · SmartMES{% endblock %}
+{% block page_title %}Assembly Control Center{% endblock %}
+
+{% block content %}
+
+<!-- ============ ROW 1: Today's Production + Stats ============ -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+
+  <!-- Today's Production -->
+  <div class="lg:col-span-2 card tilt-card p-6 relative overflow-hidden">
+    <div class="absolute -right-24 -top-24 w-72 h-72 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="flex items-start justify-between relative">
+      <div>
+        <div class="flex items-center gap-2 text-[10px] text-white/40 uppercase tracking-[0.15em] font-semibold mb-1">
+          <i data-lucide="target" class="w-3.5 h-3.5"></i> Today's Production
+        </div>
+        <div class="text-white/40 text-xs">{{ today_str }}</div>
+      </div>
+      <span class="badge bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+        <span class="status-dot w-1.5 h-1.5 rounded-full bg-emerald-400 text-emerald-400"></span> LIVE
+      </span>
+    </div>
+
+    <div class="mt-5 flex items-end gap-6 relative">
+      <div>
+        <div class="text-6xl font-extrabold text-white tracking-tight tabular-nums"
+             data-count="{{ today_completed }}">0</div>
+        <div class="text-xs text-white/40 mt-1">bikes completed</div>
+      </div>
+      <div class="pb-2 flex-1">
+        <div class="flex justify-between text-xs mb-1.5">
+          <span class="text-white/40">Daily target</span>
+          <span class="text-white font-semibold tabular-nums">{{ today_completed }} / {{ today_target }}</span>
+        </div>
+        <div class="progress-glass h-2.5">
+          <div class="fill" style="width: {{ today_pct if today_pct <= 100 else 100 }}%"></div>
+        </div>
+        <div class="flex items-center justify-between text-[10px] mt-1.5">
+          <span class="text-white/40">{{ today_pct }}% of target</span>
+          {% if today_scrapped_count > 0 %}
+          <span class="text-red-300 flex items-center gap-1">
+            <i data-lucide="alert-triangle" class="w-3 h-3"></i>
+            {{ today_scrapped_count }} scrapped today
+          </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Per-model breakdown + Scrap rate -->
+    <div class="mt-6 pt-5 border-t border-white/8 grid grid-cols-3 gap-3">
+      {% set model_icons = {'Bullet 350 UCE':'shield', 'Himalayan 411':'mountain'} %}
+      {% for model_name, count in today_by_model.items() %}
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-lg bg-white/5 border border-white/8 flex items-center justify-center text-brand-300 flex-shrink-0">
+          <i data-lucide="{{ model_icons.get(model_name, 'bike') }}" class="w-4 h-4"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="text-[10px] text-white/45 truncate">{{ model_name }}</div>
+          <div class="text-lg font-bold text-white tabular-nums leading-tight">{{ count }}</div>
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- Scrap rate widget -->
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="trash-2" class="w-4 h-4 text-red-300"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="text-[10px] text-white/45">Scrap Rate</div>
+          <div class="text-lg font-bold text-red-300 tabular-nums leading-tight">{{ scrap_rate }}%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stat grid — 8 cards -->
+  <div class="grid grid-cols-2 gap-3">
+    {% set stats = [
+      ('In Progress', counts.in_prog,    'activity',       'text-blue-300',    'bg-blue-500/10'),
+      ('Awaiting QC', counts.awaiting,   'clock',          'text-amber-300',   'bg-amber-500/10'),
+      ('QC Hold',     counts.qc_hold,    'shield-alert',   'text-red-300',     'bg-red-500/10'),
+      ('In Rework',   counts.rework,     'wrench',         'text-orange-300',  'bg-orange-500/10'),
+      ('Completed',   counts.completed,  'check-circle-2', 'text-emerald-300', 'bg-emerald-500/10'),
+      ('Scrapped',    counts.scrapped,   'trash-2',        'text-rose-300',    'bg-rose-500/10'),
+      ('Open Defects',counts.defects,    'alert-triangle', 'text-red-300',     'bg-red-500/10'),
+      ('Total',       counts.total,      'package',        'text-white/70',    'bg-white/5'),
+    ] %}
+    {% for label, val, icon, color, bg in stats %}
+    <div class="card tilt-card p-3.5 {% if label == 'Scrapped' and val > 0 %}glow-danger{% endif %}">
+      <div class="flex items-center justify-between mb-2.5">
+        <div class="w-8 h-8 rounded-lg {{ bg }} border border-white/5 flex items-center justify-center">
+          <i data-lucide="{{ icon }}" class="w-4 h-4 {{ color }}"></i>
+        </div>
+      </div>
+      <div class="text-2xl font-bold text-white tabular-nums" data-count="{{ val }}">0</div>
+      <div class="text-[10px] text-white/40 uppercase tracking-wider font-medium mt-0.5">{{ label }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ============ ROW 2: Live Line + Rework ============ -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+
+  <div class="lg:col-span-2 card p-5">
+    <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center gap-2">
+        <i data-lucide="route" class="w-4 h-4 text-brand-300"></i>
+        <h3 class="text-sm font-semibold text-white">Live Assembly Line</h3>
+      </div>
+      <a href="{{ url_for('line_view') }}" class="text-xs text-brand-300 hover:text-brand-400 flex items-center gap-1 transition">
+        Full view <i data-lucide="arrow-right" class="w-3 h-3"></i>
+      </a>
+    </div>
+
+    <div class="relative">
+      <div class="absolute left-0 right-0 top-[54px] h-1.5 conveyor-belt rounded-full opacity-80"></div>
+
+      <div class="relative grid grid-cols-5 gap-3">
+        {% for station in stations %}
+        <div class="relative z-10 flex flex-col items-center">
+          <div class="w-16 h-16 rounded-2xl station-node {% if station.is_final %}station-active{% endif %} flex flex-col items-center justify-center">
+            <i data-lucide="{% if station.is_final %}flag{% elif station.is_qc_gate %}shield-check{% else %}settings{% endif %}"
+               class="w-5 h-5 {% if station.is_final %}text-emerald-300{% elif station.is_qc_gate %}text-amber-300{% else %}text-white/40{% endif %}"></i>
+            <div class="text-[9px] text-white/35 font-bold mt-0.5">#{{ station.sequence }}</div>
+          </div>
+
+          <div class="text-[10px] text-white/50 text-center mt-2 leading-tight font-medium px-1 h-7">
+            {{ station.station_name }}
+          </div>
+
+          <div class="mt-1 flex flex-wrap gap-1 justify-center min-h-[24px]">
+            {% for c in by_station[station.station_id][:3] %}
+            <div class="group/marker relative">
+              <div class="chassis-marker {% if c.status=='AWAITING_QC' %}qc-pending{% endif %} w-7 h-7 flex items-center justify-center text-[8px] font-bold text-white cursor-pointer">
+                {{ c.chassis_no[-3:] }}
+              </div>
+              <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-ink-900/95 backdrop-blur-xl border border-white/10 rounded-lg px-2.5 py-1.5 text-[10px] text-white whitespace-nowrap opacity-0 group-hover/marker:opacity-100 pointer-events-none transition z-30 shadow-2xl">
+                <div class="font-semibold">{{ c.chassis_no }}</div>
+                <div class="text-white/50">{{ c.model.model_name }}</div>
+              </div>
+            </div>
+            {% endfor %}
+            {% if by_station[station.station_id]|length > 3 %}
+            <div class="w-7 h-7 rounded-lg bg-white/5 border border-white/8 flex items-center justify-center text-[8px] font-bold text-white/50">
+              +{{ by_station[station.station_id]|length - 3 }}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if counts.in_prog == 0 and counts.awaiting == 0 %}
+    <div class="text-center text-xs text-white/40 mt-5 py-2">
+      No active chassis on line.
+      <a href="{{ url_for('chassis_new') }}" class="text-brand-300 hover:text-brand-400 hover:underline ml-1">Start one →</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card p-5 {% if rework_chassis %}glow-danger-pulse{% endif %}">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-2">
+        <i data-lucide="wrench" class="w-4 h-4 text-red-300"></i>
+        <h3 class="text-sm font-semibold text-white">Rework Line</h3>
+      </div>
+      <a href="{{ url_for('rework_line') }}" class="text-xs text-red-300 hover:text-red-200 flex items-center gap-1 transition">
+        Open <i data-lucide="arrow-right" class="w-3 h-3"></i>
+      </a>
+    </div>
+
+    <div class="space-y-2 max-h-[240px] overflow-y-auto pr-1">
+      {% if rework_chassis %}
+        {% for item in rework_chassis %}
+        <div class="p-3 rounded-xl bg-red-500/[0.04] border border-red-500/20 hover:border-red-500/40 transition">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="font-bold text-white text-sm font-mono">{{ item.chassis.chassis_no }}</span>
+            <span class="badge
+              {% if item.chassis.status == 'QC_HOLD' %}bg-red-500/15 text-red-300 border border-red-500/25
+              {% elif item.chassis.status == 'REWORK' %}bg-orange-500/15 text-orange-300 border border-orange-500/25
+              {% else %}bg-amber-500/15 text-amber-300 border border-amber-500/25{% endif %}">
+              {{ item.chassis.status }}
+            </span>
+          </div>
+          <div class="text-[10px] text-white/45 mb-1">{{ item.chassis.model.model_name }}</div>
+          <div class="flex items-center gap-1.5 text-[10px] text-red-300">
+            <i data-lucide="alert-circle" class="w-3 h-3"></i>
+            <span>{{ item.defect_count }} defect{{ 's' if item.defect_count != 1 }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="text-center py-10">
+        <div class="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-3">
+          <i data-lucide="check" class="w-5 h-5 text-emerald-300"></i>
+        </div>
+        <div class="text-xs text-white/40">Rework line is clear</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ============ ROW 3: Charts + Notice Board ============ -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+
+  <div class="card p-5">
+    <div class="flex items-center gap-2 mb-4">
+      <i data-lucide="pie-chart" class="w-4 h-4 text-brand-300"></i>
+      <h3 class="text-sm font-semibold text-white">Chassis Status</h3>
+    </div>
+    <div style="height: 220px;"><canvas id="statusChart"></canvas></div>
+  </div>
+
+  <div class="card p-5">
+    <div class="flex items-center gap-2 mb-4">
+      <i data-lucide="alert-octagon" class="w-4 h-4 text-red-300"></i>
+      <h3 class="text-sm font-semibold text-white">Defects by Severity</h3>
+    </div>
+    <div style="height: 220px;"><canvas id="sevChart"></canvas></div>
+  </div>
+
+  <div class="card p-5">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-2">
+        <i data-lucide="megaphone" class="w-4 h-4 text-amber-300"></i>
+        <h3 class="text-sm font-semibold text-white">Notice Board</h3>
+      </div>
+      <a href="{{ url_for('noticeboard') }}" class="text-xs text-brand-300 hover:text-brand-400 flex items-center gap-1 transition">
+        All <i data-lucide="arrow-right" class="w-3 h-3"></i>
+      </a>
+    </div>
+
+    <div class="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+      {% if recent_notices %}
+        {% for n in recent_notices %}
+        {% set color = {
+          'SUCCESS': 'border-emerald-500/25 bg-emerald-500/[0.04]',
+          'URGENT':  'border-red-500/25 bg-red-500/[0.04]',
+          'AUTO':    'border-blue-500/25 bg-blue-500/[0.04]',
+          'INFO':    'border-white/8 bg-white/[0.02]'
+        }.get(n.category, 'border-white/8 bg-white/[0.02]') %}
+        <div class="p-3 rounded-xl border {{ color }}">
+          <div class="flex items-start justify-between gap-2 mb-1">
+            <div class="text-xs font-semibold text-white leading-tight">{{ n.title }}</div>
+            <div class="text-[9px] text-white/35 whitespace-nowrap">{{ n.created_at.strftime('%H:%M') }}</div>
+          </div>
+          <div class="text-[10px] text-white/55 leading-relaxed">{{ n.body[:90] }}{% if n.body|length > 90 %}...{% endif %}</div>
+          <div class="text-[9px] text-white/30 mt-1.5 flex items-center gap-1">
+            <i data-lucide="{{ 'cpu' if not n.user else 'user' }}" class="w-2.5 h-2.5"></i>
+            {{ n.user.full_name if n.user else 'System' }}
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="text-center py-8 text-xs text-white/40">No notices yet</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ============ ROW 4: Batches + Defects ============ -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+  <div class="card p-5">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-2">
+        <i data-lucide="layers" class="w-4 h-4 text-brand-300"></i>
+        <h3 class="text-sm font-semibold text-white">Active Batches</h3>
+      </div>
+      <a href="{{ url_for('batches') }}" class="text-xs text-brand-300 hover:text-brand-400 flex items-center gap-1 transition">
+        All <i data-lucide="arrow-right" class="w-3 h-3"></i>
+      </a>
+    </div>
+
+    <div class="space-y-3">
+      {% for w in active_wos[:4] %}
+      <div class="p-3 rounded-xl bg-white/[0.02] border border-white/8">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-mono text-brand-300">{{ w.wo_number }}</span>
+          <span class="text-[10px] text-white/45">{{ w.model.model_name }}</span>
+        </div>
+        <div class="flex items-center gap-2 mb-1">
+          <div class="progress-glass flex-1 h-2">
+            <div class="fill" style="width: {{ w.fill_percent }}%"></div>
+          </div>
+          <span class="text-[10px] font-bold text-white tabular-nums">{{ w.fill_percent }}%</span>
+        </div>
+        <div class="text-[10px] text-white/40">
+          {{ w.completed_qty }} / {{ w.target_qty }} bikes · Shift {{ w.shift }}
+        </div>
+      </div>
+      {% else %}
+      <div class="text-center py-6 text-xs text-white/40">No active batches</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="lg:col-span-2 card p-5">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-2">
+        <i data-lucide="clipboard-x" class="w-4 h-4 text-red-300"></i>
+        <h3 class="text-sm font-semibold text-white">Recent Defects</h3>
+      </div>
+      <a href="{{ url_for('defects') }}" class="text-xs text-brand-300 hover:text-brand-400 flex items-center gap-1 transition">
+        View all <i data-lucide="arrow-right" class="w-3 h-3"></i>
+      </a>
+    </div>
+
+    {% if recent_defects %}
+    <table class="table-dark-custom">
+      <thead>
+        <tr><th>ID</th><th>Chassis</th><th>Part</th><th>Type</th><th>Severity</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for d in recent_defects %}
+        <tr>
+          <td class="font-mono text-brand-300">#{{ d.defect_id }}</td>
+          <td class="font-semibold text-white font-mono">{{ d.chassis.chassis_no }}</td>
+          <td>
+            <div class="flex items-center gap-2">
+              {% if d.part_image_snapshot %}
+              <div class="w-7 h-7 rounded-lg bg-white/5 border border-white/8 flex items-center justify-center p-0.5">
+                <img src="{{ url_for('static', filename=d.part_image_snapshot) }}"
+                     onerror="this.style.display='none'"
+                     class="max-w-full max-h-full object-contain">
+              </div>
+              {% endif %}
+              <span>{{ d.part_name_snapshot or '—' }}</span>
+            </div>
+          </td>
+          <td class="text-white/70">{{ d.defect_type }}</td>
+          <td>
+            <span class="badge
+              {% if d.severity=='CRITICAL' %}bg-red-500/15 text-red-300 border border-red-500/25
+              {% elif d.severity=='MAJOR' %}bg-orange-500/15 text-orange-300 border border-orange-500/25
+              {% else %}bg-amber-500/15 text-amber-300 border border-amber-500/25{% endif %}">
+              {{ d.severity }}
+            </span>
+          </td>
+          <td>
+            <span class="badge
+              {% if d.status=='OPEN' %}bg-red-500/15 text-red-300 border border-red-500/25
+              {% elif d.status=='IN_REWORK' %}bg-orange-500/15 text-orange-300 border border-orange-500/25
+              {% elif d.status=='FIXED' %}bg-emerald-500/15 text-emerald-300 border border-emerald-500/25
+              {% elif d.status=='SCRAPPED' %}bg-rose-500/15 text-rose-300 border border-rose-500/25
+              {% else %}bg-white/5 text-white/50 border border-white/10{% endif %}">
+              {{ d.status }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-10">
+      <div class="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-3">
+        <i data-lucide="check-circle-2" class="w-6 h-6 text-emerald-300"></i>
+      </div>
+      <div class="text-sm text-white/60">Zero defects. Line running clean.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  Chart.defaults.color = 'rgba(232, 236, 243, 0.6)';
+  Chart.defaults.font.family = 'Inter';
+
+  new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+      labels: {{ status_labels|tojson }},
+      datasets: [{
+        data: {{ status_values|tojson }},
+        backgroundColor: ['#5b6cff','#fbbf24','#f87171','#ff9a5c','#ffb648','#4ade80','#fb7185','#6b7280'],
+        borderColor: 'rgba(7, 9, 15, 0.9)',
+        borderWidth: 3,
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '68%',
+      animation: { duration: 1400, easing: 'easeOutQuart' },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: 'rgba(232,236,243,0.6)', font: { size: 10 }, padding: 10, boxWidth: 10, usePointStyle: true }
+        }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('sevChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ sev_labels|tojson }},
+      datasets: [{
+        data: {{ sev_values|tojson }},
+        backgroundColor: ['#fbbf24','#ff9a5c','#f87171'],
+        borderRadius: 8,
+        barThickness: 34
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 1400, easing: 'easeOutQuart' },
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { color: 'rgba(232,236,243,0.45)', precision: 0, font: { size: 10 } },
+          grid: { color: 'rgba(255,255,255,0.05)' }
+        },
+        x: {
+          ticks: { color: 'rgba(232,236,243,0.6)', font: { size: 10 } },
+          grid: { display: false }
+        }
+      }
+    }
+  });
+
+  {% if today_completed > 0 %}
+  setTimeout(() => window.SmartMES?.fireConfetti?.(), 900);
+  {% endif %}
+</script>
+{% endblock %}

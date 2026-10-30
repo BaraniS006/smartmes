@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Welcome · SmartMES{% endblock %}
+
+{% block auth_content %}
+<div class="min-h-screen flex flex-col relative z-10">
+
+  <!-- Top Navbar -->
+  <header class="flex items-center justify-between px-8 py-6 max-w-7xl mx-auto w-full">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/25">
+        <i data-lucide="bike" class="w-5 h-5 text-white"></i>
+      </div>
+      <div class="font-extrabold text-white tracking-tight text-xl">SmartMES</div>
+    </div>
+    <a href="{{ url_for('login') }}" class="btn-glass">
+      <i data-lucide="log-in" class="w-4 h-4"></i> Login
+    </a>
+  </header>
+
+  <!-- Hero Section -->
+  <main class="flex-1 flex flex-col items-center justify-center text-center px-6 max-w-4xl mx-auto w-full mt-10 mb-20">
+    
+    <div class="badge bg-brand-500/15 text-brand-300 border border-brand-500/25 mb-6 px-4 py-1.5 fade-up">
+      <span class="status-dot w-2 h-2 rounded-full bg-brand-400"></span> System Live
+    </div>
+
+    <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight text-white mb-6 leading-tight fade-up" style="animation-delay: 100ms;">
+      Smart Assembly <br>
+      <span class="gradient-text">& Quality Management</span>
+    </h1>
+
+    <p class="text-lg text-white/50 mb-10 max-w-2xl fade-up" style="animation-delay: 200ms;">
+      A centralized, role-based platform to track two-wheeler assembly lines, enforce strict quality control, 
+      and isolate defective units automatically before they reach the customer.
+    </p>
+
+    <div class="flex gap-4 fade-up" style="animation-delay: 300ms;">
+      <a href="{{ url_for('login') }}" class="btn-primary-glass text-lg px-8 py-3.5">
+        Enter Dashboard <i data-lucide="arrow-right" class="w-5 h-5"></i>
+      </a>
+      <a href="https://github.com" target="_blank" class="btn-glass text-lg px-8 py-3.5">
+        <i data-lucide="github" class="w-5 h-5"></i> Documentation
+      </a>
+    </div>
+
+  </main>
+
+  <!-- Feature Grid -->
+  <div class="max-w-7xl mx-auto w-full px-6 pb-20">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <!-- Feature 1 -->
+      <div class="card p-8 tilt-card fade-up" style="animation-delay: 400ms;">
+        <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-6">
+          <i data-lucide="route" class="w-6 h-6 text-blue-300"></i>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Live Line Tracking</h3>
+        <p class="text-sm text-white/50">Track every chassis in real-time as it moves through the 5 sequential assembly stations.</p>
+      </div>
+
+      <!-- Feature 2 -->
+      <div class="card p-8 tilt-card fade-up" style="animation-delay: 500ms;">
+        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-6">
+          <i data-lucide="shield-check" class="w-6 h-6 text-emerald-300"></i>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Strict QC Gates</h3>
+        <p class="text-sm text-white/50">Mandatory pass/fail inspections at every station with part-level defect logging and image snapshots.</p>
+      </div>
+
+      <!-- Feature 3 -->
+      <div class="card p-8 tilt-card fade-up" style="animation-delay: 600ms;">
+        <div class="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-6">
+          <i data-lucide="wrench" class="w-6 h-6 text-red-300"></i>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Auto-Isolation</h3>
+        <p class="text-sm text-white/50">Failed units are immediately removed from the main line and sent to a dedicated Rework Bay for repair.</p>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SmartMES{% endblock %}</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: {
+              900: '#07090f',
+              800: '#0c1019',
+              700: '#131824',
+              600: '#1e2533',
+              500: '#2a3242',
+            },
+            brand: {
+              300: '#ffb088',
+              400: '#ffa262',
+              500: '#ff7a3d',
+              600: '#e85f22',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Alpine -->
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+  {% block head %}{% endblock %}
+</head>
+
+<body class="font-sans antialiased min-h-screen">
+
+{% if current_user.is_authenticated %}
+<div class="flex min-h-screen relative z-10">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="glass-sidebar w-64 fixed h-screen flex flex-col z-30">
+
+    <!-- Logo -->
+    <div class="px-5 py-5 border-b border-white/5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/25">
+          <i data-lucide="bike" class="w-5 h-5 text-white"></i>
+        </div>
+        <div class="leading-tight">
+          <div class="font-extrabold text-white tracking-tight text-[17px]">SmartMES</div>
+          <div class="text-[10px] text-white/40 uppercase tracking-[0.15em]">Assembly Control</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nav -->
+        <nav id="sidebarNav" class="flex-1 overflow-y-auto py-4 px-2 space-y-0.5 text-sm">
+
+      <div class="px-3 pt-1 pb-1 text-[10px] font-semibold text-white/30 uppercase tracking-[0.15em]">Production</div>
+      <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
+      </a>
+      <a href="{{ url_for('line_view') }}" class="nav-link {% if request.endpoint=='line_view' %}active{% endif %}">
+        <i data-lucide="route" class="w-4 h-4"></i> Assembly Line
+      </a>
+      <a href="{{ url_for('rework_line') }}" class="nav-link {% if request.endpoint=='rework_line' %}active{% endif %}">
+        <i data-lucide="wrench" class="w-4 h-4"></i> Rework Line
+      </a>
+
+      <div class="px-3 pt-4 pb-1 text-[10px] font-semibold text-white/30 uppercase tracking-[0.15em]">Work</div>
+      <a href="{{ url_for('batches') }}" class="nav-link {% if request.endpoint=='batches' %}active{% endif %}">
+        <i data-lucide="layers" class="w-4 h-4"></i> Batches
+      </a>
+      <a href="{{ url_for('workorders') }}" class="nav-link {% if request.endpoint=='workorders' %}active{% endif %}">
+        <i data-lucide="clipboard-list" class="w-4 h-4"></i> Work Orders
+      </a>
+      <a href="{{ url_for('chassis_list') }}" class="nav-link {% if request.endpoint=='chassis_list' %}active{% endif %}">
+        <i data-lucide="package" class="w-4 h-4"></i> Chassis
+      </a>
+      <a href="{{ url_for('defects') }}" class="nav-link {% if request.endpoint=='defects' %}active{% endif %}">
+        <i data-lucide="alert-triangle" class="w-4 h-4"></i> Defects
+      </a>
+
+      {% if has_permission('rework.update') %}
+      <a href="{{ url_for('rework_list') }}" class="nav-link {% if request.endpoint=='rework_list' %}active{% endif %}">
+        <i data-lucide="hammer" class="w-4 h-4"></i> Rework Queue
+      </a>
+      {% endif %}
+
+      <div class="px-3 pt-4 pb-1 text-[10px] font-semibold text-white/30 uppercase tracking-[0.15em]">Communication</div>
+      <a href="{{ url_for('noticeboard') }}" class="nav-link {% if request.endpoint=='noticeboard' %}active{% endif %}">
+        <i data-lucide="megaphone" class="w-4 h-4"></i> Notice Board
+      </a>
+
+      {% if has_permission('line.view') %}
+      <a href="{{ url_for('reports') }}" class="nav-link {% if request.endpoint=='reports' %}active{% endif %}">
+        <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Reports
+      </a>
+      {% endif %}
+
+      {% if has_permission('audit.view') %}
+      <a href="{{ url_for('audit') }}" class="nav-link {% if request.endpoint=='audit' %}active{% endif %}">
+        <i data-lucide="shield-check" class="w-4 h-4"></i> Audit Log
+      </a>
+      {% endif %}
+
+      {% if has_permission('admin.all') %}
+      <div class="px-3 pt-4 pb-1 text-[10px] font-semibold text-white/30 uppercase tracking-[0.15em]">Admin</div>
+      <a href="{{ url_for('models_admin') }}" class="nav-link {% if request.endpoint=='models_admin' %}active{% endif %}">
+        <i data-lucide="bike" class="w-4 h-4"></i> Bike Models
+      </a>
+      <a href="{{ url_for('stations_admin') }}" class="nav-link {% if request.endpoint=='stations_admin' %}active{% endif %}">
+        <i data-lucide="settings-2" class="w-4 h-4"></i> Stations
+      </a>
+      <a href="{{ url_for('users_admin') }}" class="nav-link {% if request.endpoint=='users_admin' %}active{% endif %}">
+        <i data-lucide="users" class="w-4 h-4"></i> Users & Roles
+      </a>
+      {% endif %}
+    </nav>
+
+    <!-- User footer -->
+    <div class="border-t border-white/5 p-3">
+      <div class="flex items-center gap-3 px-2.5 py-2 rounded-xl bg-white/[0.03] border border-white/5">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center font-bold text-white text-sm shadow-md shadow-brand-500/25">
+          {{ current_user.full_name[0]|upper if current_user.full_name else 'U' }}
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-xs font-semibold text-white truncate">{{ current_user.full_name }}</div>
+          <div class="text-[10px] text-brand-300 font-medium truncate">{{ current_user.role.role_name }}</div>
+        </div>
+        <a href="{{ url_for('logout') }}" title="Logout" class="text-white/40 hover:text-red-400 transition">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <main class="flex-1 ml-64">
+
+    <!-- Topbar -->
+    <header class="glass-topbar h-14 flex items-center px-6 sticky top-0 z-20">
+      <div class="flex-1">
+        <h1 class="text-sm font-semibold text-white">{% block page_title %}Dashboard{% endblock %}</h1>
+      </div>
+      <div class="flex items-center gap-5 text-xs text-white/50">
+        <div class="flex items-center gap-2">
+          <span class="status-dot w-2 h-2 rounded-full bg-emerald-400 text-emerald-400"></span>
+          <span class="hidden sm:inline">System Online</span>
+        </div>
+        <div class="equalizer">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div id="liveClock" class="tabular-nums text-white/80 font-medium"></div>
+      </div>
+    </header>
+
+    <!-- Flash -->
+    <div class="px-6 pt-4">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+          {% set style = {
+            'success': 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300',
+            'danger':  'bg-red-500/10 border-red-500/30 text-red-300',
+            'warning': 'bg-amber-500/10 border-amber-500/30 text-amber-300',
+            'info':    'bg-blue-500/10 border-blue-500/30 text-blue-300'
+          }.get(cat, 'bg-white/5 border-white/10 text-white/80') %}
+          <div x-data="{show:true}" x-show="show" x-transition
+               class="mb-2 px-4 py-2.5 rounded-xl border {{ style }} text-sm flex items-center justify-between backdrop-blur-xl">
+            <span>{{ msg }}</span>
+            <button @click="show=false" class="opacity-60 hover:opacity-100 transition">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        {% endfor %}
+      {% endwith %}
+    </div>
+
+    <!-- Content -->
+    <div class="p-6">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+
+{% else %}
+  {% block auth_content %}{% endblock %}
+{% endif %}
+
+<!-- Init icons -->
+<script>
+  lucide.createIcons();
+</script>
+
+<script src="{{ url_for('static', filename='js/line.js') }}"></script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

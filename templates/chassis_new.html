@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}New Chassis · SmartMES{% endblock %}
+{% block page_title %}Create New Chassis{% endblock %}
+
+{% block content %}
+
+<div class="max-w-2xl mx-auto">
+  <div class="card p-6 fade-up">
+
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-11 h-11 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
+        <i data-lucide="package-plus" class="w-5 h-5 text-brand-300"></i>
+      </div>
+      <div>
+        <h2 class="text-lg font-bold text-white">New Chassis</h2>
+        <p class="text-xs text-white/45">Chassis enters at Station 1 with 0% progress</p>
+      </div>
+    </div>
+
+    <form method="POST" class="space-y-5">
+      <div>
+        <label class="block text-[11px] font-semibold text-white/50 uppercase tracking-wider mb-2">
+          Chassis Number
+        </label>
+        <input name="chassis_no" required autofocus placeholder="CH-0001"
+               class="input-glass font-mono">
+      </div>
+
+      <div>
+        <label class="block text-[11px] font-semibold text-white/50 uppercase tracking-wider mb-2">
+          Work Order / Batch
+        </label>
+        <select name="wo_id" required class="input-glass">
+          {% for w in wos %}
+          <option value="{{ w.wo_id }}" class="bg-ink-800">
+            {{ w.wo_number }} — {{ w.model.model_name }} ({{ w.completed_qty }}/{{ w.target_qty }})
+          </option>
+          {% else %}
+          <option value="">No open work orders</option>
+          {% endfor %}
+        </select>
+        {% if not wos %}
+        <p class="text-xs text-amber-300 mt-2 flex items-center gap-1.5">
+          <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+          Create a work order first from the Work Orders page
+        </p>
+        {% endif %}
+      </div>
+
+      <div class="flex gap-3 pt-2">
+        <button type="submit" {% if not wos %}disabled{% endif %}
+                class="btn-primary-glass flex-1 justify-center {% if not wos %}opacity-40 cursor-not-allowed{% endif %}">
+          <i data-lucide="check" class="w-4 h-4"></i> Create &amp; Enter Line
+        </button>
+        <a href="{{ url_for('chassis_list') }}" class="btn-glass">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
